@@ -100,6 +100,10 @@ else
   SPOT_SUFFIX=""
 fi
 
+# Prompt User for Root Disk Size
+read -p "### Enter the root disk size in GB (default: 120): " DISK_SIZE
+DISK_SIZE=${DISK_SIZE:-120}
+
 # Assign new name for the machineset
 NEW_NAME="worker-gpu-$INSTANCE_TYPE$NAME_SUFFIX-$AZ$SPOT_SUFFIX"
 
@@ -139,11 +143,19 @@ else
   echo "### Creating new machineset $NEW_NAME."
   oc get -n openshift-machine-api machinesets -o name | grep -v ocs | while read -r MACHINESET
   do
-    oc get -n openshift-machine-api "$MACHINESET" -o json | jq --arg INSTANCE_TYPE "$INSTANCE_TYPE" --arg NEW_NAME "$NEW_NAME" --arg ACCELERATOR_LABEL "$ACCELERATOR_LABEL" --arg SPOT_MARKET_OPTIONS "$SPOT_MARKET_OPTIONS" '
+    oc get -n openshift-machine-api "$MACHINESET" -o json | jq --arg INSTANCE_TYPE "$INSTANCE_TYPE" --arg NEW_NAME "$NEW_NAME" --arg ACCELERATOR_LABEL "$ACCELERATOR_LABEL" --arg SPOT_MARKET_OPTIONS "$SPOT_MARKET_OPTIONS" --argjson DISK_SIZE "$DISK_SIZE" '
         (.metadata.name) |= $NEW_NAME |
         (.spec.selector.matchLabels["machine.openshift.io/cluster-api-machineset"]) |= $NEW_NAME |
         (.spec.template.metadata.labels["machine.openshift.io/cluster-api-machineset"]) |= $NEW_NAME |
         (.spec.template.spec.providerSpec.value.instanceType) |= $INSTANCE_TYPE |
+        (.spec.template.spec.providerSpec.value.blockDevices) |= [
+          {
+            "ebs": {
+              "volumeSize": $DISK_SIZE,
+              "volumeType": "gp3"
+            }
+          }
+        ] |
         (.spec.template.spec.metadata.labels["cluster-api/accelerator"]) |= $ACCELERATOR_LABEL |
         (.spec.template.spec.taints) |= [{ "effect": "NoSchedule", "key": "nvidia.com/gpu", "value": $ACCELERATOR_LABEL }] |
         if $SPOT_MARKET_OPTIONS != "" then

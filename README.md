@@ -96,11 +96,6 @@ oc apply -f ./crs
 - **MIG Support**: Multi-Instance GPU configuration capability
 - **Validation**: GPU functionality testing and validation
 
-### Driver Configuration
-- **Container Image**: Specific NVIDIA driver version with SHA256 verification
-- **Registry**: Uses NVIDIA's official container registry
-- **Integration**: OpenShift driver toolkit compatibility
-
 ## Verification
 
 After deployment, verify your GPU setup:
